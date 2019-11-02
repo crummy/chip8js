@@ -8,43 +8,41 @@ function instruction(opcode: Byte): Instruction {
   const y: Byte = opcode & 0x00F0 >> 4
   const kk: Byte = opcode & 0x00FF
   
-  if (matches(opcode, 0x00E0)) return clearScreen;
-  else if (matches(opcode, 0x00EE)) return subroutineReturn;
-  else if (matches(opcode, 0x1000)) return jump(nnn)
-  else if (matches(opcode, 0x2000)) return call(nnn) 
-  else if (matches(opcode, 0x3000)) return skipIfEqual(x, kk) 
-  else if (matches(opcode, 0x4000)) return skipIfNotEqual(x, kk) 
-  else if (matches(opcode, 0x5000)) return skipIfRegistersEqual(x, y) 
-  else if (matches(opcode, 0x6000)) return store(x, kk) 
-  else if (matches(opcode, 0x7000)) return addByte(x, kk) 
-  else if (matches(opcode, 0x8000)) return copy(x, y)
-  else if (matches(opcode, 0x8001)) return or(x, y)
-  else if (matches(opcode, 0x8002)) return and(x, y)
-  else if (matches(opcode, 0x8003)) return xor(x, y)
-  else if (matches(opcode, 0x8004)) return add(x, y)
-  else if (matches(opcode, 0x8005)) return sub(x, y)
-  else if (matches(opcode, 0x8006)) return shr(x)
-  else if (matches(opcode, 0x8007)) return subN(x, y)
-  else if (matches(opcode, 0x800E)) return shl(y)
-  else if (matches(opcode, 0x9000)) return skipIfRegistersNotEqual(x, y)
-  else if (matches(opcode, 0xA000)) return storeWord(nnn)
-  else if (matches(opcode, 0xB000)) return jumpV0(nnn)
-  else if (matches(opcode, 0xC000)) return andRandom(x, kk)
-  else if (matches(opcode, 0xD000)) return draw(x, y, n)
-  else if (matches(opcode, 0xE09E)) return skipIfKeyDown(x)
-  else if (matches(opcode, 0xE0A1)) return skipIfKeyUp(x)
-  else if (matches(opcode, 0xF007)) return storeDelayTimer(x)
-  else if (matches(opcode, 0xF00A)) return awaitKeyDown(x)
-  else if (matches(opcode, 0xF015)) return setDelayTimer(x)
-  else if (matches(opcode, 0xF018)) return setSoundTimer(x)
-  else if (matches(opcode, 0xF01E)) return addToI(x)
-  else if (matches(opcode, 0xF029)) return storeSpriteLocation(x)
-  else if (matches(opcode, 0xF033)) return storeBCD(x)
-  else if (matches(opcode, 0xF055)) return storeRegisters(x)
-  else if (matches(opcode, 0xF065)) return readRegisters(x)
-  else {
-    throw new InvalidOpcode(opcode)
-  }
+  if (opcode == 0x00E0) return clearScreen;
+  else if (opcode == 0x00EE) return subroutineReturn;
+  else if ((opcode & 0xF000) == 0x1000) return jump(nnn)
+  else if ((opcode & 0xF000) == 0x2000) return call(nnn) 
+  else if ((opcode & 0xF000) == 0x3000) return skipIfEqual(x, kk) 
+  else if ((opcode & 0xF000) == 0x4000) return skipIfNotEqual(x, kk) 
+  else if ((opcode & 0xF000) == 0x5000) return skipIfRegistersEqual(x, y) 
+  else if ((opcode & 0xF000) == 0x6000) return store(x, kk) 
+  else if ((opcode & 0xF000) == 0x7000) return addByte(x, kk) 
+  else if ((opcode & 0xF00F) == 0x8000) return copy(x, y)
+  else if ((opcode & 0xF00F) == 0x8001) return or(x, y)
+  else if ((opcode & 0xF00F) == 0x8002) return and(x, y)
+  else if ((opcode & 0xF00F) == 0x8003) return xor(x, y)
+  else if ((opcode & 0xF00F) == 0x8004) return add(x, y)
+  else if ((opcode & 0xF00F) == 0x8005) return sub(x, y)
+  else if ((opcode & 0xF00F) == 0x8006) return shr(x)
+  else if ((opcode & 0xF00F) == 0x8007) return subN(x, y)
+  else if ((opcode & 0xF00F) == 0x800E) return shl(y)
+  else if ((opcode & 0xF000) == 0x9000) return skipIfRegistersNotEqual(x, y)
+  else if ((opcode & 0xF000) == 0xA000) return storeWord(nnn)
+  else if ((opcode & 0xF000) == 0xB000) return jumpV0(nnn)
+  else if ((opcode & 0xF000) == 0xC000) return andRandom(x, kk)
+  else if ((opcode & 0xF000) == 0xD000) return draw(x, y, n)
+  else if ((opcode & 0xF0FF) == 0xE09E) return skipIfKeyDown(x)
+  else if ((opcode & 0xF0FF) == 0xE0A1) return skipIfKeyUp(x)
+  else if ((opcode & 0xF0FF) == 0xF007) return storeDelayTimer(x)
+  else if ((opcode & 0xF0FF) == 0xF00A) return awaitKeyDown(x)
+  else if ((opcode & 0xF0FF) == 0xF015) return setDelayTimer(x)
+  else if ((opcode & 0xF0FF) == 0xF018) return setSoundTimer(x)
+  else if ((opcode & 0xF0FF) == 0xF01E) return addToI(x)
+  else if ((opcode & 0xF0FF) == 0xF029) return storeSpriteLocation(x)
+  else if ((opcode & 0xF0FF) == 0xF033) return storeBCD(x)
+  else if ((opcode & 0xF0FF) == 0xF055) return storeRegisters(x)
+  else if ((opcode & 0xF0FF) == 0xF065) return readRegisters(x)
+  else throw new InvalidOpcode(opcode)
 }
 
 class Instruction {
@@ -55,8 +53,6 @@ class Instruction {
     this.name = name;
   }
 }
-
-let matches = (opcode: Byte, value: Byte) => (opcode & value) == value
 
 let clearScreen = new Instruction("CLS", chip8 => chip8.screen.reset())
 let subroutineReturn = new Instruction("RET", (chip8: Chip8) => {
