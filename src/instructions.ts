@@ -119,22 +119,27 @@ let xor = (register1: Byte, register2: Byte) => new Instruction(`XOR V${register
 })
 let add = (register1: Byte, register2: Byte) => new Instruction(`ADD V${register1}, V${register2}`, (chip8: Chip8) => {
   const sum = chip8.V[register1] + chip8.V[register2]
+  chip8.V[0xF] = sum > 0xFF ? 1 : 0
   chip8.V[register1] = sum & 0xFF
 })
 let sub = (register1: Byte, register2: Byte) => new Instruction(`SUB V${register1}, V${register2}`, (chip8: Chip8) => {
   const difference = chip8.V[register1] - chip8.V[register2]
+  chip8.V[0xF] = difference < 0 ? 1 : 0
   chip8.V[register1] = difference & 0xFF
 })
 let shl = (register: Byte) => new Instruction(`SHL V${register}`, (chip8: Chip8) => {
   const shifted = chip8.V[register] << 1
+  chip8.V[0xF] = (chip8.V[register] & 0x8000) == 0x8000 ? 1 : 0
   chip8.V[register] = shifted;
 })
 let subN = (register1: Byte, register2: Byte) => new Instruction(`SUBN V${register1}, V${register2}`, (chip8: Chip8) => {
   const difference = chip8.V[register2] - chip8.V[register1]
+  chip8.V[0xF] = difference < 0 ? 1 : 0
   chip8.V[register2] = difference & 0xFF
 })
 let shr = (register: Byte) => new Instruction(`SHR ${register}`, (chip8: Chip8) => {
   const shifted = chip8.V[register] >> 1
+  chip8.V[0xF] = (chip8.V[register] & 0x1) == 0x1 ? 1 : 0
   chip8.V[register] = shifted;
 })
 let jumpV0 = (address: Word) => new Instruction(`JP V0+${address.toString(16)}`, (chip8: Chip8) => {

@@ -92,7 +92,6 @@ export class Stack {
 }
 
 export interface Chip8 {
-  registers: Registers
   timer: Timer
   memory: Memory
   screen: Screen
@@ -129,9 +128,9 @@ export class Chip8Emulator implements Chip8 {
   }
 
   tick() {
-    const opcode = this.memory.get(this.registers.pc) << 8 | this.memory.get(this.registers.pc + 1)
-    console.log(`pc: ${this.registers.pc.toString(16)}, opcode: ${opcode.toString(16)}`)
-    this.registers.pc += 2
+    const opcode = this.memory.get(this.pc) << 8 | this.memory.get(this.pc + 1)
+    console.log(`pc: ${this.pc.toString(16)}, opcode: ${opcode.toString(16)}`)
+    this.pc += 2
     const inst = instruction(opcode)
     inst.execute(this)
   }
