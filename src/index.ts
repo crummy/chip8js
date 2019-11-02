@@ -1,4 +1,4 @@
-import { Chip8Emulator } from "./chip8.js"
+import { Chip8Emulator, Screen } from "./chip8.js"
 
 async function load(path: string, onload: (b: Uint8Array) => void) {
   const data = await fetch(path)
@@ -8,6 +8,7 @@ async function load(path: string, onload: (b: Uint8Array) => void) {
 }
 
 const chip8 = new Chip8Emulator()
+const canvas = <HTMLCanvasElement>document.getElementById("screen")!!
 load("maze.ch8", (rom) => {
   chip8.loadGame(rom)
   execute(chip8)
@@ -17,8 +18,25 @@ function execute(chip8: Chip8Emulator) {
   setTimeout(() => { 
     chip8.tick()
     execute(chip8)
+    if (chip8.drawFlag) {
+      draw(chip8.screen)
+    }
   },
-  2) // 500hz?
+  100)
+}
+
+function draw(screen: Screen) {
+  const ctx = canvas.getContext("2d")!!
+  const imageData = ctx.createImageData(screen.width, screen.height)
+  for (let y = 0; y < screen.height; ++y) {
+    for (let x = 0; x < screen.width; ++x) {
+      const pixel = screen.get(x, y) ? 0 : 255
+      imageData.data[4 * y * screen.width + x] = pixel
+      imageData.data[4 * y * screen.width + x + 1] = pixel
+      imageData.data[4 * y * screen.width + x + 2] = pixel
+    }
+  }
+  ctx.putImageData(imageData, 0, 0)
 }
 
 document.addEventListener('keydown', event => {

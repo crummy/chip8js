@@ -56,7 +56,13 @@ export class Screen {
   }
 
   set(x: Byte, y: Byte, state: boolean) {
+    if (x < 0 || x > this.width) throw new OutOfBounds(x)
+    if (y < 0 || y > this.height) throw new OutOfBounds(y)
     this.pixels[y * this.width + x] = state
+  }
+
+  get(x: Byte, y: Byte): boolean {
+    return this.pixels[y * this.width + x]
   }
 
   reset() {
@@ -118,6 +124,8 @@ export class Chip8Emulator implements Chip8 {
   pc: Word = 0x200
   I: Word = 0
   V: Byte[] = [] // size 16
+  
+  drawFlag = false
 
   loadGame(game:Uint8Array) {
     if (game.byteLength > this.memory.ram.length) {
@@ -135,14 +143,11 @@ export class Chip8Emulator implements Chip8 {
 
   tick() {
     const opcode = this.memory.get(this.pc) << 8 | this.memory.get(this.pc + 1)
+    this.drawFlag = (opcode == 0x00e0) || ((opcode & 0xF000) == 0xD000)
     const inst = instruction(opcode)
     console.log(`pc: ${this.pc.toString(16)}, op: ${opcode.toString(16)} ${inst.name}`)
     this.pc += 2
     inst.execute(this)
-  }
-
-  drawFlag(): boolean {
-    return true // 0x00e0 clears screen, 0xdxyn draws a sprite
   }
 
   reset() {
@@ -166,6 +171,12 @@ class IllegalAccess extends Error {
 class InvalidROM extends Error {
   constructor(reason: string) {
     super(reason)
+  }
+}
+
+class OutOfBounds extends Error {
+  constructor(byte: Byte) {
+    super(`Out of bounds: ${byte.toString(16)}`)
   }
 }
 

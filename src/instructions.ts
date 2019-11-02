@@ -4,8 +4,8 @@ import { Chip8 } from "./chip8"
 function instruction(opcode: Byte): Instruction {
   const nnn: Address = opcode & 0x0FFF
   const n: Byte = opcode & 0x000F
-  const x: Byte = opcode & 0x0F00 >> 8
-  const y: Byte = opcode & 0x00F0 >> 4
+  const x: Byte = (opcode & 0x0F00) >> 8
+  const y: Byte = (opcode & 0x00F0) >> 4
   const kk: Byte = opcode & 0x00FF
   
   if (opcode == 0x00E0) return clearScreen;
@@ -64,13 +64,13 @@ let call = (address: Address) => new Instruction(`CALL ${address.toString(16)}`,
   chip8.stack.push(chip8.pc);
   chip8.pc = address
 })
-let skipIfEqual = (registerIndex: Byte, byte: Byte) => new Instruction(`SE V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+let skipIfEqual = (registerIndex: Byte, byte: Byte) => new Instruction(`SE V${registerIndex}, ${byte.toString(16)}`, (chip8: Chip8) => {
   const skip = chip8.V[registerIndex] == byte
   if (skip) {
     chip8.pc += 2
   }
 })
-let skipIfNotEqual = (registerIndex: Byte, byte: Byte) => new Instruction(`SNE V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+let skipIfNotEqual = (registerIndex: Byte, byte: Byte) => new Instruction(`SNE V${registerIndex}, ${byte.toString(16)}`, (chip8: Chip8) => {
   const skip = chip8.V[registerIndex] != byte
   if (skip) {
     chip8.pc += 2
@@ -88,7 +88,7 @@ let skipIfRegistersNotEqual = (register1: Byte, register2: Byte) => new Instruct
     chip8.pc += 2
   }
 })
-let store = (registerIndex: Byte, byte: Byte) => new Instruction(`LD V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+let store = (registerIndex: Byte, byte: Byte) => new Instruction(`LD V${registerIndex}, ${byte.toString(16)}`, (chip8: Chip8) => {
   chip8.V[registerIndex] = byte
 })
 let storeWord = (word: Word) => new Instruction(`LD ${word.toString(16)}`, (chip8: Chip8) => {
@@ -97,7 +97,7 @@ let storeWord = (word: Word) => new Instruction(`LD ${word.toString(16)}`, (chip
 let copy = (registerTo: Byte, registerFrom: Byte) => new Instruction(`LD V${registerTo}, V${registerFrom}`, (chip8: Chip8) => {
   chip8.V[registerFrom] = chip8.V[registerTo]
 })
-let addByte = (registerIndex: Byte, byte: Byte) => new Instruction(`ADD V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+let addByte = (registerIndex: Byte, byte: Byte) => new Instruction(`ADD V${registerIndex}, ${byte.toString(16)}`, (chip8: Chip8) => {
   const sum = chip8.V[registerIndex] + byte
   chip8.V[registerIndex] = sum & 0xFF
 })
@@ -150,9 +150,12 @@ let draw = (register1: Byte, register2: Byte, nibble: Byte) => new Instruction(`
   chip8.V[0xF] = 0
   for (let i = 0; i < nibble; ++i) {
     const byte = chip8.memory.get(chip8.I + i)
+    console.log(`drawing line ${i}: ${byte.toString(16)} from I: ${chip8.I.toString(16)}`)
     const y = chip8.V[register2] + i
-    for (let x = 0; x < 8; ++x) {
+    for (let x = chip8.V[register1]; x < chip8.V[register1] + 8; ++x) {
       const pixel: boolean = (byte & (0x1 << x)) > 0
+      if (pixel != chip8.screen.get(x, y)) chip8.V[0xF] = 1
+      console.log(`setting pixel ${x},${y} to ${pixel}`)
       chip8.screen.set(x, y, pixel)
     }
   }
