@@ -10,6 +10,8 @@ export class Timer {
     this.delay = 0
     this.sound = 0;
   }
+
+  // TODO: count down every 60hz
 }
 
 export class Memory {
@@ -109,7 +111,7 @@ export class Chip8Emulator implements Chip8 {
   stack = new Stack()
 
   keys: Boolean[] = []
-  pc: Word = 0
+  pc: Word = 0x200
   I: Word = 0
   V: Byte[] = [] // size 16
 
@@ -129,9 +131,9 @@ export class Chip8Emulator implements Chip8 {
 
   tick() {
     const opcode = this.memory.get(this.pc) << 8 | this.memory.get(this.pc + 1)
-    console.log(`pc: ${this.pc.toString(16)}, opcode: ${opcode.toString(16)}`)
-    this.pc += 2
     const inst = instruction(opcode)
+    console.log(`pc: ${this.pc.toString(16)}, op: ${opcode.toString(16)} ${inst.name}`)
+    this.pc += 2
     inst.execute(this)
   }
 
