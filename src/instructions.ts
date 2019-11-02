@@ -7,6 +7,7 @@ function instruction(opcode: Byte): Instruction {
   const x: Byte = opcode & 0x0F00 >> 8
   const y: Byte = opcode & 0x00F0 >> 4
   const kk: Byte = opcode & 0x00FF
+  
   if (matches(opcode, 0x00E0)) return clearScreen;
   else if (matches(opcode, 0x00EE)) return subroutineReturn;
   else if (matches(opcode, 0x1000)) return jump(nnn)
@@ -46,155 +47,161 @@ function instruction(opcode: Byte): Instruction {
   }
 }
 
-interface Instruction {
-  (chip8: Chip8): void
+class Instruction {
+  execute: (chip8: Chip8) => void
+  name: String
+  constructor(name: String, execute: (chip8: Chip8) => void) {
+    this.execute = execute;
+    this.name = name;
+  }
 }
 
 let matches = (opcode: Byte, value: Byte) => (opcode & value) == value
 
-let clearScreen: Instruction = chip8 => chip8.screen.reset()
-let subroutineReturn: Instruction = chip8 => {
+let clearScreen = new Instruction("CLS", chip8 => chip8.screen.reset())
+let subroutineReturn = new Instruction("RET", (chip8: Chip8) => {
   const pc = chip8.stack.pop()
-  chip8.registers.pc = pc
-}
-let jump = (address: Address) => (chip8: Chip8) => {
-  chip8.registers.pc = address
-}
-let call = (address: Address) => (chip8: Chip8) => {
-  chip8.stack.push(chip8.registers.pc);
-  chip8.registers.pc = address
-}
-let skipIfEqual = (registerIndex: Byte, byte: Byte) => (chip8: Chip8) => {
-  const skip = chip8.registers.V[registerIndex] == byte
+  chip8.pc = pc
+})
+let jump = (address: Address) => new Instruction(`JP ${address.toString(16)}`, (chip8: Chip8) => chip8.pc = address)
+let call = (address: Address) => new Instruction(`CALL ${address.toString(16)}`, (chip8: Chip8) => {
+  chip8.stack.push(chip8.pc);
+  chip8.pc = address
+})
+let skipIfEqual = (registerIndex: Byte, byte: Byte) => new Instruction(`SE V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+  const skip = chip8.V[registerIndex] == byte
   if (skip) {
-    chip8.registers.pc += 2
+    chip8.pc += 2
   }
-}
-let skipIfNotEqual = (registerIndex: Byte, byte: Byte) => (chip8: Chip8) => {
-  const skip = chip8.registers.V[registerIndex] != byte
+})
+let skipIfNotEqual = (registerIndex: Byte, byte: Byte) => new Instruction(`SNE V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+  const skip = chip8.V[registerIndex] != byte
   if (skip) {
-    chip8.registers.pc += 2
+    chip8.pc += 2
   }
-}
-let skipIfRegistersEqual = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const skip = chip8.registers.V[register1] == chip8.registers.V[register2]
+})
+let skipIfRegistersEqual = (register1: Byte, register2: Byte) => new Instruction(`SE V${register1}, V${register2}`, (chip8: Chip8) => {
+  const skip = chip8.V[register1] == chip8.V[register2]
   if (skip) {
-    chip8.registers.pc += 2
+    chip8.pc += 2
   }
-}
-let skipIfRegistersNotEqual = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const skip = chip8.registers.V[register1] != chip8.registers.V[register2]
+})
+let skipIfRegistersNotEqual = (register1: Byte, register2: Byte) => new Instruction(`SNE V${register1}, ${register2}`, (chip8: Chip8) => {
+  const skip = chip8.V[register1] != chip8.V[register2]
   if (skip) {
-    chip8.registers.pc += 2
+    chip8.pc += 2
   }
-}
-let store = (registerIndex: Byte, byte: Byte) => (chip8: Chip8) => {
-  chip8.registers.V[registerIndex] = byte
-}
-let storeWord = (word: Word) => (chip8: Chip8) => {
-  chip8.registers.I = word
-}
-let copy = (registerTo: Byte, registerFrom: Byte) => (chip8: Chip8) => {
-  chip8.registers.V[registerFrom] = chip8.registers.V[registerTo]
-}
-let addByte = (registerIndex: Byte, byte: Byte) => (chip8: Chip8) => {
-  const sum = chip8.registers.V[registerIndex] + byte
-  chip8.registers.V[registerIndex] = sum & 0xFF
-}
-let or = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const or = chip8.registers.V[register1] | chip8.registers.V[register2]
-  chip8.registers.V[register1] = or
-}
-let and = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const and = chip8.registers.V[register1] & chip8.registers.V[register2]
-  chip8.registers.V[register1] = and
-}
-let xor = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const xor = chip8.registers.V[register1] ^ chip8.registers.V[register2]
-  chip8.registers.V[register1] = xor
-}
-let add = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const sum = chip8.registers.V[register1] + chip8.registers.V[register2]
-  chip8.registers.V[register1] = sum & 0xFF
-}
-let sub = (register1: Byte, register2: Byte) => (chip8: Chip8) => {
-  const difference = chip8.registers.V[register1] - chip8.registers.V[register2]
-  chip8.registers.V[register1] = difference & 0xFF
-}
-let shl = (register: Byte) => (chip8: Chip8) => {
-  const shifted = chip8.registers.V[register] << 1
-  chip8.registers.V[register] = shifted;
-}
-let subN = (register1: Byte, register2: Byte) => sub(register2, register1)
-let shr = (register: Byte) => (chip8: Chip8) => {
-  const shifted = chip8.registers.V[register] >> 1
-  chip8.registers.V[register] = shifted;
-}
-let jumpV0 = (address: Word) => (chip8: Chip8) => {
-  const destination = chip8.registers.V[0] + address
-  chip8.registers.pc = destination
-}
-let andRandom = (register: Byte, byte: Byte) => (chip8: Chip8) => {
+})
+let store = (registerIndex: Byte, byte: Byte) => new Instruction(`LD V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+  chip8.V[registerIndex] = byte
+})
+let storeWord = (word: Word) => new Instruction(`LD ${word}`, (chip8: Chip8) => {
+  chip8.I = word
+})
+let copy = (registerTo: Byte, registerFrom: Byte) => new Instruction(`LD V${registerTo}, V${registerFrom}`, (chip8: Chip8) => {
+  chip8.V[registerFrom] = chip8.V[registerTo]
+})
+let addByte = (registerIndex: Byte, byte: Byte) => new Instruction(`ADD V${registerIndex}, ${byte}`, (chip8: Chip8) => {
+  const sum = chip8.V[registerIndex] + byte
+  chip8.V[registerIndex] = sum & 0xFF
+})
+let or = (register1: Byte, register2: Byte) => new Instruction(`OR V${register1}, V${register2}`, (chip8: Chip8) => {
+  const or = chip8.V[register1] | chip8.V[register2]
+  chip8.V[register1] = or
+})
+let and = (register1: Byte, register2: Byte) => new Instruction(`AND V${register1}, V${register2}`, (chip8: Chip8) => {
+  const and = chip8.V[register1] & chip8.V[register2]
+  chip8.V[register1] = and
+})
+let xor = (register1: Byte, register2: Byte) => new Instruction(`XOR V${register1}, V${register2}`, (chip8: Chip8) => {
+  const xor = chip8.V[register1] ^ chip8.V[register2]
+  chip8.V[register1] = xor
+})
+let add = (register1: Byte, register2: Byte) => new Instruction(`ADD V${register1}, V${register2}`, (chip8: Chip8) => {
+  const sum = chip8.V[register1] + chip8.V[register2]
+  chip8.V[register1] = sum & 0xFF
+})
+let sub = (register1: Byte, register2: Byte) => new Instruction(`SUB V${register1}, V${register2}`, (chip8: Chip8) => {
+  const difference = chip8.V[register1] - chip8.V[register2]
+  chip8.V[register1] = difference & 0xFF
+})
+let shl = (register: Byte) => new Instruction(`SHL V${register}`, (chip8: Chip8) => {
+  const shifted = chip8.V[register] << 1
+  chip8.V[register] = shifted;
+})
+let subN = (register1: Byte, register2: Byte) => new Instruction(`SUBN V${register1}, V${register2}`, (chip8: Chip8) => {
+  const difference = chip8.V[register2] - chip8.V[register1]
+  chip8.V[register2] = difference & 0xFF
+})
+let shr = (register: Byte) => new Instruction(`SHR ${register}`, (chip8: Chip8) => {
+  const shifted = chip8.V[register] >> 1
+  chip8.V[register] = shifted;
+})
+let jumpV0 = (address: Word) => new Instruction(`JP V0+${address.toString(16)}`, (chip8: Chip8) => {
+  const destination = chip8.V[0] + address
+  chip8.pc = destination
+})
+let andRandom = (register: Byte, byte: Byte) => new Instruction(`RND V${register} ${byte.toString(16)}`, (chip8: Chip8) => {
   const randomByte: Byte = Math.random() * 0xFF
-  chip8.registers.V[register] = randomByte & byte
-}
-let draw = (register1: Byte, register2: Byte, nibble: Byte) => (chip8: Chip8) => {
+  chip8.V[register] = randomByte & byte
+})
+let draw = (register1: Byte, register2: Byte, nibble: Byte) => new Instruction(`DRW V${register1.toString(16)} V${register2.toString(16)} ${nibble}`, (chip8: Chip8) => {
   // TODO
-}
-let skipIfKeyDown = (register: Byte) => (chip8: Chip8) => {
-  const key = chip8.registers.V[register]
+})
+let skipIfKeyDown = (register: Byte) => new Instruction(`SKP ${register}`, (chip8: Chip8) => {
+  const key = chip8.V[register]
   const skip = chip8.keys[key] == true
   if (skip) {
-    chip8.registers.pc += 2
+    chip8.pc += 2
   }
-}
-let skipIfKeyUp = (register: Byte) => (chip8: Chip8) => {
-  const key = chip8.registers.V[register]
+})
+let skipIfKeyUp = (register: Byte) => new Instruction(`SKNP ${register}`, (chip8: Chip8) => {
+  const key = chip8.V[register]
   const skip = chip8.keys[key] == false
   if (skip) {
-    chip8.registers.pc += 2
+    chip8.pc += 2
   }
-}
-let storeDelayTimer = (register: Byte) => (chip8: Chip8) => {
-  chip8.registers.V[register] == chip8.timer.delay
-}
-let setDelayTimer = (register: Byte) => (chip8: Chip8) => {
-  chip8.timer.delay = chip8.registers.V[register]
-}
-let setSoundTimer = (register: Byte) => (chip8: Chip8) => {
-  chip8.timer.sound = chip8.registers.V[register]
-}
-let awaitKeyDown = (register: Byte) => (chip8: Chip8) => {
+})
+let storeDelayTimer = (register: Byte) => new Instruction(`LD V${register} DT`, (chip8: Chip8) => {
+  chip8.V[register] == chip8.timer.delay
+})
+let setDelayTimer = (register: Byte) => new Instruction(`LD DT, V${register}`, (chip8: Chip8) => {
+  chip8.timer.delay = chip8.V[register]
+})
+let setSoundTimer = (register: Byte) => new Instruction(`LD ST, V${register}`, (chip8: Chip8) => {
+  chip8.timer.sound = chip8.V[register]
+})
+let awaitKeyDown = (register: Byte) => new Instruction(`LD V${register}, K`, (chip8: Chip8) => {
   // TODO
-}
-let addToI = (register: Byte) => (chip8: Chip8) => {
-  chip8.registers.I += chip8.registers.V[register]
-}
-let storeSpriteLocation = (register: Byte) => (chip8: Chip8) => {
-  chip8.registers.I = 0 // TODO
-}
-let storeBCD = (register: Byte) => (chip8: Chip8) => {
+})
+let addToI = (register: Byte) => new Instruction(`ADD I, V${register}`, (chip8: Chip8) => {
+  chip8.I += chip8.V[register]
+})
+let storeSpriteLocation = (register: Byte) => new Instruction(`LD F, V${register}`, (chip8: Chip8) => {
+  chip8.I = 0 // TODO
+})
+let storeBCD = (register: Byte) => new Instruction(`LD B, V${register}`, (chip8: Chip8) => {
   // this is cheating
-  const decimal = chip8.registers.V[register].toString().padStart(3, '0')
+  const decimal = chip8.V[register].toString().padStart(3, '0')
   const hundreds = Number(decimal.charAt(0))
   const tens = Number(decimal.charAt(1))
   const ones = Number(decimal.charAt(2))
-  chip8.memory.set(chip8.registers.I, hundreds)
-  chip8.memory.set(chip8.registers.I + 1, tens)
-  chip8.memory.set(chip8.registers.I + 2, ones)
-}
-let readRegisters = (registerMax: Byte) => (chip8: Chip8) => {
+  chip8.memory.set(chip8.I, hundreds)
+  chip8.memory.set(chip8.I + 1, tens)
+  chip8.memory.set(chip8.I + 2, ones)
+})
+let readRegisters = (registerMax: Byte) => new Instruction(`LD [I], V${registerMax}`, (chip8: Chip8) => {
   for (let i = 0; i < registerMax; ++i) {
-    const source = chip8.registers.I + i
-    chip8.registers.V[i] = chip8.memory.get(source)
+    const source = chip8.I + i
+    chip8.V[i] = chip8.memory.get(source)
   }
-}
-let storeRegisters = (registerMax: Byte) => (chip8: Chip8) => {
+})
+let storeRegisters = (registerMax: Byte) => new Instruction(`LD V${registerMax}, [I]`, (chip8: Chip8) => {
   for (let i = 0; i < registerMax; ++i) {
-    const destination = chip8.registers.I + i
-    chip8.memory.set(destination, chip8.registers.V[i])
+    const destination = chip8.I + i
+    chip8.memory.set(destination, chip8.V[i])
   }
-}
+})
 
 class InvalidOpcode extends Error {
   constructor(byte: Byte) {

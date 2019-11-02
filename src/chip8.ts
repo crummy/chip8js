@@ -2,25 +2,14 @@ import { Byte, Word, Address } from "./types.js"
 import font from "./font.js"
 import instruction from "./instructions.js"
 
-export class Registers {
-  pc: Word = 0
-  I: Word = 0
-  V: Byte[] = [] // size 16
-
-  constructor() {
-    this.reset()
-  }
-
-  reset() {
-    this.pc = 0x200
-    this.I = 0
-    this.V = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  }
-}
-
 export class Timer {
   delay: Byte = 0
   sound: Byte = 0
+
+  reset() {
+    this.delay = 0
+    this.sound = 0;
+  }
 }
 
 export class Memory {
@@ -41,10 +30,11 @@ export class Memory {
     }
   }
 
-  get(address: Address) {
+  get(address: Address): number {
     if (address >= 0x000 && address <= 0x1FF) return this.interpreter[address]
     if (address >= 0x050 && address <= 0x0A0) return this.font[address - 0x050]
     if (address >= 0x200 && address <= 0xFFF) return this.ram[address - 0x200]
+    throw new IllegalAccess(address)
   }
 
   set(address: Address, value: Byte) {
@@ -108,22 +98,33 @@ export interface Chip8 {
   screen: Screen
   stack: Stack
   keys: Boolean[]
+  pc: Word
+  I: Word
+  V: Byte[]
 }
 
 export class Chip8Emulator implements Chip8 {
-  registers = new Registers()
   timer = new Timer()
   memory = new Memory()
   screen = new Screen()
   stack = new Stack()
+
   keys: Boolean[] = []
+  pc: Word = 0
+  I: Word = 0
+  V: Byte[] = [] // size 16
 
   loadGame(game:Uint8Array) {
     if (game.byteLength > this.memory.ram.length) {
       throw new InvalidROM("ROM size too big")
     }
     for (let i = 0; i < game.byteLength; ++i) {
-      this.memory.set(0x200 + i, game[i])
+      const byte = game[i]
+      this.memory.set(0x200 + i, byte)
+    }
+    for (let i = 0; i < game.byteLength; i += 2) {
+      const word = game[i] << 8 | game[i + 1]
+      console.log(i.toString(16), word.toString(16), instruction(word).name)
     }
   }
 
@@ -131,11 +132,23 @@ export class Chip8Emulator implements Chip8 {
     const opcode = this.memory.get(this.registers.pc) << 8 | this.memory.get(this.registers.pc + 1)
     console.log(`pc: ${this.registers.pc.toString(16)}, opcode: ${opcode.toString(16)}`)
     this.registers.pc += 2
-    instruction(opcode)
+    const inst = instruction(opcode)
+    inst.execute(this)
   }
 
   drawFlag(): boolean {
     return true // 0x00e0 clears screen, 0xdxyn draws a sprite
+  }
+
+  reset() {
+    this.timer.reset()
+    this.memory.reset()
+    this.screen.reset()
+    this.stack.reset()
+    this.keys = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+    this.pc = 0x200
+    this.I = 0
+    this.V = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   }
 }
 
