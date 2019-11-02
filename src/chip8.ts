@@ -49,15 +49,19 @@ export class Memory {
 export class Screen {
   width = 64
   height = 32
-  pixels: Byte[] = [] // size widht*height
+  pixels: boolean[] = [] // size widht*height
 
   constructor() {
     this.reset()
   }
 
+  set(x: Byte, y: Byte, state: boolean) {
+    this.pixels[y * this.width + x] = state
+  }
+
   reset() {
     for (let i = 0; i < 64 * 32; ++i) {
-      this.pixels[i] = 0
+      this.pixels[i] = false
     }
   }
 }

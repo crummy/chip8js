@@ -91,7 +91,7 @@ let skipIfRegistersNotEqual = (register1: Byte, register2: Byte) => new Instruct
 let store = (registerIndex: Byte, byte: Byte) => new Instruction(`LD V${registerIndex}, ${byte}`, (chip8: Chip8) => {
   chip8.V[registerIndex] = byte
 })
-let storeWord = (word: Word) => new Instruction(`LD ${word}`, (chip8: Chip8) => {
+let storeWord = (word: Word) => new Instruction(`LD ${word.toString(16)}`, (chip8: Chip8) => {
   chip8.I = word
 })
 let copy = (registerTo: Byte, registerFrom: Byte) => new Instruction(`LD V${registerTo}, V${registerFrom}`, (chip8: Chip8) => {
@@ -147,7 +147,15 @@ let andRandom = (register: Byte, byte: Byte) => new Instruction(`RND V${register
   chip8.V[register] = randomByte & byte
 })
 let draw = (register1: Byte, register2: Byte, nibble: Byte) => new Instruction(`DRW V${register1.toString(16)} V${register2.toString(16)} ${nibble}`, (chip8: Chip8) => {
-  // TODO
+  chip8.V[0xF] = 0
+  for (let i = 0; i < nibble; ++i) {
+    const byte = chip8.memory.get(chip8.I + i)
+    const y = chip8.V[register2] + i
+    for (let x = 0; x < 8; ++x) {
+      const pixel: boolean = (byte & (0x1 << x)) > 0
+      chip8.screen.set(x, y, pixel)
+    }
+  }
 })
 let skipIfKeyDown = (register: Byte) => new Instruction(`SKP ${register}`, (chip8: Chip8) => {
   const key = chip8.V[register]
