@@ -1,4 +1,6 @@
-import { Chip8Emulator, Display } from "./chip8.js"
+import { Chip8Emulator, Display, Chip8 } from "./chip8.js"
+import instruction from "./instructions.js"
+import { toHex } from "./types.js"
 
 async function load(path: string, onload: (b: Uint8Array) => void) {
   const data = await fetch(path)
@@ -11,34 +13,82 @@ const chip8 = new Chip8Emulator()
 const canvas = <HTMLCanvasElement>document.getElementById("display")!!
 load("maze.ch8", (rom) => {
   chip8.loadGame(rom)
-  execute(chip8)
+  drawRomInstructions(rom)
+  executeLoop(chip8)
+  drawLoop(chip8)
 })
 
-function execute(chip8: Chip8Emulator) {
+function executeLoop(chip8: Chip8Emulator) {
   setTimeout(() => { 
     chip8.tick()
-    execute(chip8)
+    executeLoop(chip8)
     if (chip8.drawFlag) {
-      draw(chip8.display)
+      drawScreen(chip8.display)
     }
   },
-  2) // 500hz?
+  2) // 500hz
 }
 
-function draw(display: Display) {
+function drawLoop(chip8: Chip8Emulator) {
+  setTimeout(() => {
+    if (chip8.drawFlag) {
+      drawScreen(chip8.display)
+    }
+    drawUI(chip8)
+    drawLoop(chip8)
+  },
+  1000/60) // 60hz
+}
+
+function drawRomInstructions(rom: Uint8Array) {
+  const table = document.getElementById("rom_instructions")!!
+  for (let i = 0; i < rom.length; i += 2) {
+    const op = rom[i] << 8 | rom[i + 1]
+
+    const tr = document.createElement("tr");
+    tr.id = `rom_address_${toHex(i + Chip8.ROM_START_ADDRESS)}`
+    tr.className = "rom_instruction"
+
+    const address = document.createElement("td")
+    address.innerHTML = i.toString(16).padStart(4, '0')
+    tr.append(address)
+
+    const opcode = document.createElement("td")
+    opcode.innerHTML = op.toString(16).padStart(4, '0')
+    tr.append(opcode)
+
+    const description = document.createElement("td")
+    description.innerHTML = instruction(op).name
+    tr.append(description)
+
+    table.append(tr)
+  }
+}
+
+function drawUI(chip8: Chip8Emulator) {
+  for (let i = 0; i < 16; ++i) {
+    document.querySelector(`#v${i.toString(16).toUpperCase()}`)!!.innerHTML = chip8.V[i].toString(16)
+  }
+  document.querySelector("#i")!!.innerHTML = toHex(chip8.I)
+  document.querySelector("#pc")!!.innerHTML = toHex(chip8.pc)
+  document.querySelector("#dt")!!.innerHTML = toHex(chip8.timer.delay, 2)
+  document.querySelector("#st")!!.innerHTML = toHex(chip8.timer.sound, 2)
+  document.querySelectorAll(".rom_instruction").forEach(instruction => instruction.classList.remove("highlight"))
+  const inst = document.querySelector(`#rom_address_${toHex(chip8.pc)}`)
+  if (inst != null) {
+    inst.classList.add("highlight")
+  }
+}
+
+function drawScreen(display: Display) {
+  const pixelSize = 8
   const ctx = canvas.getContext("2d")!!
-  ctx.scale(4, 4)
-  const imageData = ctx.createImageData(display.width, display.height)
   for (let y = 0; y < display.height; ++y) {
     for (let x = 0; x < display.width; ++x) {
-      const pixel = display.get(x, y) ? 0 : 255
-      imageData.data[y * (display.width * 4) + x * 4] = pixel
-      imageData.data[y * (display.width * 4) + x * 4 + 1] = pixel
-      imageData.data[y * (display.width * 4) + x * 4 + 2] = pixel
-      imageData.data[y * (display.width * 4) + x * 4 + 3] = 255
+      ctx.fillStyle = display.get(x, y) ? "#FFFFFF" : "#000000"
+      ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
     }
   }
-  ctx.putImageData(imageData, 0, 0)
 }
 
 document.addEventListener('keydown', event => {

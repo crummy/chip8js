@@ -56,8 +56,8 @@ export class Display {
   }
 
   set(x: Byte, y: Byte, state: boolean) {
-    if (x < 0 || x > this.width) console.log(`drawing out of bounds to ${x},${y}`) //throw new OutOfBounds(x)
-    if (y < 0 || y > this.height) console.log(`drawing out of bounds to ${x},${y}`)  // throw new OutOfBounds(y)
+    if (x < 0 || x > this.width) throw new OutOfBounds(x)
+    if (y < 0 || y > this.height) throw new OutOfBounds(y)
     this.pixels[y * this.width + x] = state
   }
 
@@ -73,7 +73,8 @@ export class Display {
 }
 
 export class Stack {
-  stack: Address[] = [] // size 16
+  stackSize = 16
+  stack: Address[] = []
   sp: Byte
 
   constructor() {
@@ -86,7 +87,7 @@ export class Stack {
   }
 
   push(address: Address) {
-    if (this.sp == 16) {
+    if (this.sp == this.stackSize) {
       throw new StackOverflow()
     }
     this.stack[this.sp] = address
@@ -114,6 +115,12 @@ export interface Chip8 {
   V: Byte[]
 }
 
+export module Chip8 {
+  export const SCREEN_WIDTH = 64
+  export const SCREEN_HEIGHT = 32
+  export const ROM_START_ADDRESS = 0x200
+}
+
 export class Chip8Emulator implements Chip8 {
   timer = new Timer()
   memory = new Memory()
@@ -127,6 +134,10 @@ export class Chip8Emulator implements Chip8 {
   
   drawFlag = false
 
+  constructor(){
+    this.reset()
+  }
+
   loadGame(game:Uint8Array) {
     if (game.byteLength > this.memory.ram.length) {
       throw new InvalidROM("ROM size too big")
@@ -135,17 +146,13 @@ export class Chip8Emulator implements Chip8 {
       const byte = game[i]
       this.memory.set(0x200 + i, byte)
     }
-    for (let i = 0; i < game.byteLength; i += 2) {
-      const word = game[i] << 8 | game[i + 1]
-      console.log(i.toString(16), word.toString(16), instruction(word).name)
-    }
   }
 
   tick() {
     const opcode = this.memory.get(this.pc) << 8 | this.memory.get(this.pc + 1)
     this.drawFlag = (opcode == 0x00e0) || ((opcode & 0xF000) == 0xD000)
     const inst = instruction(opcode)
-    console.log(`pc: ${this.pc.toString(16)}, op: ${opcode.toString(16)} ${inst.name}`)
+    //console.log(`pc: ${this.pc.toString(16)}, op: ${opcode.toString(16)} ${inst.name}`)
     this.pc += 2
     inst.execute(this)
   }
@@ -159,6 +166,7 @@ export class Chip8Emulator implements Chip8 {
     this.pc = 0x200
     this.I = 0
     this.V = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    this.drawFlag = false
   }
 }
 

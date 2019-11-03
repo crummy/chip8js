@@ -47,8 +47,8 @@ function instruction(opcode: Byte): Instruction {
 
 class Instruction {
   execute: (chip8: Chip8) => void
-  name: String
-  constructor(name: String, execute: (chip8: Chip8) => void) {
+  name: string
+  constructor(name: string, execute: (chip8: Chip8) => void) {
     this.execute = execute;
     this.name = name;
   }
