@@ -54,7 +54,7 @@ class Instruction {
   }
 }
 
-let clearScreen = new Instruction("CLS", chip8 => chip8.screen.reset())
+let clearScreen = new Instruction("CLS", chip8 => chip8.display.reset())
 let subroutineReturn = new Instruction("RET", (chip8: Chip8) => {
   const pc = chip8.stack.pop()
   chip8.pc = pc
@@ -146,17 +146,19 @@ let andRandom = (register: Byte, byte: Byte) => new Instruction(`RND V${register
   const randomByte: Byte = Math.random() * 0xFF
   chip8.V[register] = randomByte & byte
 })
-let draw = (register1: Byte, register2: Byte, nibble: Byte) => new Instruction(`DRW V${register1.toString(16)} V${register2.toString(16)} ${nibble}`, (chip8: Chip8) => {
+let draw = (vx: Byte, vy: Byte, height: Byte) => new Instruction(`DRW V${vx.toString(16)} V${vy.toString(16)} ${height}`, (chip8: Chip8) => {
   chip8.V[0xF] = 0
-  for (let i = 0; i < nibble; ++i) {
-    const byte = chip8.memory.get(chip8.I + i)
-    console.log(`drawing line ${i}: ${byte.toString(16)} from I: ${chip8.I.toString(16)}`)
-    const y = chip8.V[register2] + i
-    for (let x = chip8.V[register1]; x < chip8.V[register1] + 8; ++x) {
-      const pixel: boolean = (byte & (0x1 << x)) > 0
-      if (pixel != chip8.screen.get(x, y)) chip8.V[0xF] = 1
-      console.log(`setting pixel ${x},${y} to ${pixel}`)
-      chip8.screen.set(x, y, pixel)
+  const x = chip8.V[vx]
+  const y = chip8.V[vy]
+  for (let yOffset = 0; yOffset < height; ++yOffset) {
+    const pixel = chip8.memory.get(chip8.I + yOffset)
+    for (let xOffset = 0; xOffset < 8; ++xOffset) {
+      const dot: boolean = (pixel & (0x80 >> xOffset)) != 0
+      const dotX = (x + xOffset) % chip8.display.width;
+      const dotY = (y + yOffset) % chip8.display.height;
+      //console.log(`set bit ${xOffset} of ${pixel.toString(2).padStart(8, '0')} at ${dotX}, ${dotY} to ${dot}`)
+      if (dot != chip8.display.get(dotX, dotY)) chip8.V[0xF] = 1
+      chip8.display.set(dotX, dotY, dot)
     }
   }
 })

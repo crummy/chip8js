@@ -46,7 +46,7 @@ export class Memory {
   }
 }
 
-export class Screen {
+export class Display {
   width = 64
   height = 32
   pixels: boolean[] = [] // size widht*height
@@ -56,8 +56,8 @@ export class Screen {
   }
 
   set(x: Byte, y: Byte, state: boolean) {
-    if (x < 0 || x > this.width) throw new OutOfBounds(x)
-    if (y < 0 || y > this.height) throw new OutOfBounds(y)
+    if (x < 0 || x > this.width) console.log(`drawing out of bounds to ${x},${y}`) //throw new OutOfBounds(x)
+    if (y < 0 || y > this.height) console.log(`drawing out of bounds to ${x},${y}`)  // throw new OutOfBounds(y)
     this.pixels[y * this.width + x] = state
   }
 
@@ -106,7 +106,7 @@ export class Stack {
 export interface Chip8 {
   timer: Timer
   memory: Memory
-  screen: Screen
+  display: Display
   stack: Stack
   keys: Boolean[]
   pc: Word
@@ -117,7 +117,7 @@ export interface Chip8 {
 export class Chip8Emulator implements Chip8 {
   timer = new Timer()
   memory = new Memory()
-  screen = new Screen()
+  display = new Display()
   stack = new Stack()
 
   keys: Boolean[] = []
@@ -153,7 +153,7 @@ export class Chip8Emulator implements Chip8 {
   reset() {
     this.timer.reset()
     this.memory.reset()
-    this.screen.reset()
+    this.display.reset()
     this.stack.reset()
     this.keys = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
     this.pc = 0x200
