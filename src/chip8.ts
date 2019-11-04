@@ -139,6 +139,7 @@ export class Chip8Emulator implements Chip8 {
   }
 
   loadGame(game:Uint8Array) {
+    this.reset()
     if (game.byteLength > this.memory.ram.length) {
       throw new InvalidROM("ROM size too big")
     }

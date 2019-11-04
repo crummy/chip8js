@@ -10,21 +10,17 @@ async function load(path: string, onload: (b: Uint8Array) => void) {
 }
 
 const chip8 = new Chip8Emulator()
+let paused = true
 const canvas = <HTMLCanvasElement>document.getElementById("display")!!
-load("maze.ch8", (rom) => {
-  chip8.loadGame(rom)
-  drawRomInstructions(rom)
-  executeLoop(chip8)
-  drawLoop(chip8)
-})
+executeLoop(chip8)
+drawLoop(chip8)
 
 function executeLoop(chip8: Chip8Emulator) {
   setTimeout(() => { 
-    chip8.tick()
-    executeLoop(chip8)
-    if (chip8.drawFlag) {
-      drawScreen(chip8.display)
+    if (!paused) {
+      chip8.tick()
     }
+    executeLoop(chip8)
   },
   2) // 500hz
 }
@@ -96,6 +92,16 @@ document.addEventListener('keydown', event => {
 })
 document.addEventListener('keyup', event => {
   setKeyPressed(event.key, false)
+})
+
+document.querySelectorAll(".rom").forEach(button => {
+  const b = <HTMLButtonElement>button
+  const rom = b.innerHTML
+  b.onclick = () => load(`roms/${rom}`, (rom) => {
+    chip8.loadGame(rom)
+    drawRomInstructions(rom)
+    paused = false
+  })
 })
 
 function setKeyPressed(key: string, set: boolean) {
