@@ -151,7 +151,7 @@ export class Chip8Emulator implements Chip8 {
 
   tick() {
     const opcode = this.memory.get(this.pc) << 8 | this.memory.get(this.pc + 1)
-    this.drawFlag = (opcode == 0x00e0) || ((opcode & 0xF000) == 0xD000)
+    this.drawFlag = this.drawFlag || (opcode == 0x00e0) || ((opcode & 0xF000) == 0xD000)
     const inst = instruction(opcode)
     //console.log(`pc: ${this.pc.toString(16)}, op: ${opcode.toString(16)} ${inst.name}`)
     this.pc += 2
@@ -167,7 +167,7 @@ export class Chip8Emulator implements Chip8 {
     this.pc = 0x200
     this.I = 0
     this.V = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    this.drawFlag = false
+    this.drawFlag = true
   }
 }
 

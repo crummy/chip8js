@@ -29,6 +29,7 @@ function drawLoop(chip8: Chip8Emulator) {
   setTimeout(() => {
     if (chip8.drawFlag) {
       drawScreen(chip8.display)
+      chip8.drawFlag = false;
     }
     drawUI(chip8)
     drawLoop(chip8)
@@ -46,7 +47,7 @@ function drawRomInstructions(rom: Uint8Array) {
     tr.className = "rom_instruction"
 
     const address = document.createElement("td")
-    address.innerHTML = i.toString(16).padStart(4, '0')
+    address.innerHTML = (i + Chip8.ROM_START_ADDRESS).toString(16).padStart(4, '0')
     tr.append(address)
 
     const opcode = document.createElement("td")
